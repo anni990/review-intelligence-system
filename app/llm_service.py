@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 from google import genai
 from dotenv import load_dotenv
 from app.models import BatchResponse
@@ -84,22 +85,25 @@ Analyze reviews:
 """
 
 
-    response = client.models.generate_content(
-
-        model=MODEL_NAME,
-
-        contents=[
-            SYSTEM_PROMPT,
-            user_prompt
-        ],
-
-        config={
-            "response_mime_type":"application/json",
-            "response_schema":BatchResponse
-        }
-    )
-
-
+    # Run the blocking LLM API call in a thread pool executor
+    # This prevents blocking the event loop
+    loop = asyncio.get_event_loop()
+    
+    def _call_llm():
+        """Synchronous wrapper for blocking LLM API call."""
+        return client.models.generate_content(
+            model=MODEL_NAME,
+            contents=[
+                SYSTEM_PROMPT,
+                user_prompt
+            ],
+            config={
+                "response_mime_type":"application/json",
+                "response_schema":BatchResponse
+            }
+        )
+    
+    response = await loop.run_in_executor(None, _call_llm)
     parsed=response.parsed
 
     return parsed.reviews

@@ -1,5 +1,45 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
+from enum import Enum
+from datetime import datetime
+
+
+class JobStatus(str, Enum):
+    """Job processing status enumeration."""
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class Job(BaseModel):
+    """Represents an asynchronous analysis job."""
+    id: str
+    status: JobStatus
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    total_reviews: int
+    processed_batches: Optional[int] = None
+    results: Optional[List["ReviewAnalysis"]] = None
+    error: Optional[str] = None
+    reviews: Optional[List] = None  # Input reviews (not included in response)
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class JobResponse(BaseModel):
+    """Response model for job status queries."""
+    id: str
+    status: JobStatus
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    total_reviews: int
+    processed_batches: Optional[int] = None
+    results: Optional[List["ReviewAnalysis"]] = None
+    error: Optional[str] = None
 
 
 class Issue(BaseModel):
@@ -41,3 +81,8 @@ class FinalResponse(BaseModel):
     total_reviews: int
     processed_batches: int
     results: List[ReviewAnalysis]
+
+
+# Update forward references for Pydantic models
+Job.model_rebuild()
+JobResponse.model_rebuild()
